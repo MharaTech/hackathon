@@ -1,0 +1,11 @@
+network:
+  racecourse:
+services:
+  gateway:
+    image: caddy
+    networks:
+      - racecourse
+  traffic:
+    image: python:3.11
+    networks:
+      - racecourse
