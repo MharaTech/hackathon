@@ -3,9 +3,9 @@ network:
 services:
   gateway:
     image: caddy
-    networks:
-      - racecourse
-  racecourse:
-    build: .
+    volumes:
+      - ./gate:/app
+    working_dir: /app
+    command: caddy run
     networks:
       - racecourse
