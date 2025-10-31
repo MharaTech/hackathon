@@ -13,6 +13,6 @@ main(){
 	read -p "Enter identifier [default: $IDENTIFIER]: " IDENTIFIER
 	export IDENTIFIER
 
-	docker run --it --restart always --cpu 1 --memory 500m --label is_racer=y --network racecourse --network-alias "player_$IDENTIFIER" --name "player_$IDENTIFIER" "$IMAGE"
+	docker run --it --restart always --cpu 1 --memory 500m --label is_racer=y --network racecourse --network-alias "player_${IDENTIFIER}.internal" --name "player_$IDENTIFIER" "$IMAGE"
 }
 (main)
