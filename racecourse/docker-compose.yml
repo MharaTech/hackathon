@@ -5,7 +5,7 @@ services:
     image: caddy
     networks:
       - racecourse
-  traffic:
-    image: python:3.11
+  racecourse:
+    build: .
     networks:
       - racecourse
