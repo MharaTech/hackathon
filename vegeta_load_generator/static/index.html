@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Server IP Submit and Ranking</title>
+    <style>
+        /* Minimal styling for readability */
+        body { font-family: sans-serif; padding: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .success-high { color: green; font-weight: bold; }
+        .success-low { color: red; font-weight: bold; }
+        .text-right { text-align: right; }
+        .loading { color: gray; }
+    </style>
+</head>
+<body>
+    <h2>Enter Server IP to Test</h2>
+    <form id="serverForm">
+        <label for="server_ip">Server IP (e.g., http://google.com):</label>
+        <input type="text" id="server_ip" name="server_ip" required value="http://google.com" />
+        <button type="submit">Start Load Test</button>
+    </form>
+
+    <p id="response"></p>
+
+    <hr style="margin: 30px 0;">
+
+    <h2>Server Performance Ranking</h2>
+    <div id="reportsContainer">
+        <p class="loading">Loading reports...</p>
+    </div>
+
+    <script>
+        // --- Form Submission Logic ---
+        document.getElementById("serverForm").addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            const serverIp = document.getElementById("server_ip").value;
+            const responseElement = document.getElementById("response");
+            responseElement.textContent = "Test started in background. Waiting for results...";
+
+            try {
+                const response = await fetch("/hit", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ server_ip: serverIp })
+                });
+
+                const result = await response.json();
+                responseElement.textContent = result.message;
+                
+                // Refresh the table after a delay to allow the background test to complete (10s + buffer)
+                setTimeout(fetchReports, 12000);
+
+            } catch (error) {
+                responseElement.textContent = "Error starting test: " + error.message;
+            }
+        });
+
+        // --- Report Fetching and Display Logic ---
+
+        async function fetchReports() {
+            const container = document.getElementById('reportsContainer');
+            container.innerHTML = '<p class="loading">Loading reports...</p>';
+            
+            try {
+                const response = await fetch('/reports');
+                if (!response.ok) throw new Error('Failed to fetch reports from API');
+                
+                const reports = await response.json();
+                
+                if (reports.length === 0) {
+                    container.innerHTML = '<p>No reports found. Run a test to see data here!</p>';
+                    return;
+                }
+
+                const tableHTML = generateReportsTable(reports);
+                container.innerHTML = tableHTML;
+
+            } catch (error) {
+                container.innerHTML = `<p style="color:red;">Error loading reports: ${error.message}.</p>`;
+                console.error("Error fetching reports:", error);
+            }
+        }
+
+        function generateReportsTable(reports) {
+            let table = '<table><thead><tr>';
+            table += '<th>Rank</th>';
+            table += '<th>Target URL</th>';
+            table += '<th class="text-right">Avg Success Rate</th>';
+            table += '<th class="text-right">Avg P95 Latency (ms)</th>';
+            table += '<th class="text-right">Total Tests</th>';
+            table += '</tr></thead><tbody>';
+
+            reports.forEach((report, index) => {
+                const successRate = report.avg_success_rate_percent;
+                const successClass = successRate >= 95 ? 'success-high' : (successRate < 90 ? 'success-low' : '');
+                
+                table += `<tr>`;
+                table += `<td>${index + 1}</td>`;
+                table += `<td>${report.server_ip}</td>`;
+                table += `<td class="text-right ${successClass}">${successRate.toFixed(2)}%</td>`;
+                table += `<td class="text-right">${report.avg_latency_p95_ms.toFixed(2)}</td>`;
+                table += `<td class="text-right">${report.total_tests.toLocaleString()}</td>`;
+                table += `</tr>`;
+            });
+
+            table += '</tbody></table>';
+            return table;
+        }
+
+        // Initial fetch on page load
+        window.onload = fetchReports;
+    </script>
+</body>
+</html>
